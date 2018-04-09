@@ -1,0 +1,199 @@
+{% extends './base.html' %}
+{% block title %}Add Activity{% endblock %}
+
+{% load staticfiles%}
+
+{% block extrastyles %}
+    <script type="text/javascript" src="{% static 'p2preview/js/highcharts.js' %}" ></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'p2preview/css/statistics.css' %}"/>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+<script type="text/javascript" src="script.js"></script>
+{% endblock %}
+
+{% block body %}
+  <div class="container">
+    <div class="row justify-content-center align-items-center">
+      <div class="col-sm-12">
+        <div class="activityList">
+          <div class="container-fluid">
+            <div class="row">
+              <div class="col-sm-12">
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                  <li class="nav-item">
+                    <a class="nav-link active" id="individual-tab" data-toggle="tab" href="#individual" role="tab" aria-controls="individual" aria-selected="true">Individual Stats</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" id="summary-tab" data-toggle="tab" href="#summary" role="tab" aria-controls="summary" aria-selected="false">Summary Stats</a>
+                  </li>
+                </ul>
+                <div class="tab-content" id="myTabContent">
+                  <div class="tab-pane fade show active" id="individual" role="tabpanel" aria-labelledby="individual-tab">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Review Of</th>
+                              <th>Reviewed By</th>
+                              <!--<th>Criteria</th>-->
+                              <th>Response</th>
+                              {% if total_points != 0 %}
+                                <th>
+                                  Points ({{ total_points }})
+                                </th>
+                              {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for indi in individual %}
+                            <tr>
+                                <th scope="row">{{ forloop.counter }}</th>
+                                {% if activity.textOrImage %}
+                                  <td>
+                                    Group Name: {{ indi.reviewOf.groupId }}<br>
+                                    <div class="label" data-toggle="modal" data-target="#assigmentDetailsText_{{ forloop.counter }}">
+                                      <button type="button" class="btn btn-outline-success">
+                                        Show details
+                                      </button>
+                                    </div>
+                                    <div class="modal fade" id="assigmentDetailsText_{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                      <div class="modal-dialog" role="document">
+                                         <div class="modal-content">
+                                            <div class="modal-header">
+                                               <h5 class="modal-title" id="exampleModalLabel">Assignments Details</h5>
+                                               <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                               <span aria-hidden="true">&times;</span>
+                                               </button>
+                                            </div>
+                                            <div class="modal-body">
+                                               <div class="container">
+                                                  <div class="row">
+                                                     <div class="col-sm-auto">
+                                                        Text: {{ indi.reviewOf.text }}
+                                                     </div>
+                                                  </div>
+                                               </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                               <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                               <!--<button type="button" class="btn btn-primary">Save changes</button>-->
+                                            </div>
+                                         </div>
+                                      </div>
+                                   </div>
+
+                                  </td>
+                                {% else %}
+                                  <td>
+                                    <img src="{% if request.is_secure %}https://{% else %}http://{% endif %}{{ request.META.HTTP_HOST }}{{ indi.reviewOf.fileURL }}" width="200">
+                                  </td>
+                                {% endif %}
+
+                                <td>
+                                  Group Id: <b>{{ indi.reviewBy.groupId }}</b> <br>
+                                  Group Name: <b>{{ indi.reviewBy.groupName }}</b> <br>
+                                  {% for mem in indi.reviewBy.groupMembers %}
+                                     <b>#{{ forloop.counter }}</b> {{ mem.name }} ({{ mem.rollNo }})<br>
+                                  {% endfor %}
+                                </td>
+                                <!--<td>
+                                  {% for criteria in indi.criterias %}
+                                     #{{ forloop.counter }} {{ criteria.genericId.description }}aaaaa cvv <hr>
+                                  {% endfor %}
+                                </td>-->
+                                <td>
+                                  {% for response in indi.responses %}
+                                    <div class="response" data-toggle="tooltip" data-placement="top" title="{{ response.criteria.genericId.description }}">
+                                      <b>#{{ forloop.counter }}</b>
+                                      {% if response.response == 'Unattempted' %}
+                                        <span class="red">
+                                          {{ response.response }}
+                                        </span> <br>
+                                      {% else %}
+                                        <span class="green">
+                                          {{ response.response }}
+                                        </span> <br>
+                                      {% endif %}
+                                      Comment: {{ response.comment }}
+                                    </div>
+                                  {% endfor %}
+                                </td>
+                                {% if total_points != 0 %}
+                                  <td>
+                                    {{ indi.points }}
+                                  </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                  </div>
+
+                  <div class="tab-pane fade" id="summary" role="tabpanel" aria-labelledby="summary-tab">
+                    {% if assigments|length == 1%}
+                    {% for ga in assigments %}
+                    <div class="center">Response Summary for Activity: {{ activity.name }} {{ ga.groupId }}</div>
+                    {% for cri in ga.criterias %}
+                    <div id="container_{{ cri.criteria_id }}_{{ ga.assigId }}" style="min-width: 310px;  margin: 0 auto"></div>
+                    <script>
+                    var chart_{{ cri.criteria_id }}_{{ ga.assigId }} = new Highcharts.Chart({
+  chart: {
+    type: 'bar',
+    renderTo: 'container_{{ cri.criteria_id }}_{{ ga.assigId }}'
+  },
+  xAxis: {
+    categories: ['{{ cri.criteria }}'],
+  },
+  title: {
+      text: null
+  },
+  yAxis: {
+    min: 0,
+    title: {
+      text: '% Selection for each option',
+    },
+  },
+  legend: {
+    reversed: true,
+  },
+  plotOptions: {
+    series: {
+      stacking: 'normal',
+    },
+  },
+  series: [],
+});
+
+$(chart_{{ cri.criteria_id }}_{{ ga.assigId }}).ready(function() {
+var se = [];
+// var chart = $('container_{{ forloop.counter }}');
+{% for ge in cri.series %}
+// alert("vishwesh " + '{{ ge }}');
+se = [...se, { 'data': '{{ ge.data }}', 'name': '{{ ge.name }}'}];
+chart_{{ cri.criteria_id }}_{{ ga.assigId }}.addSeries({
+                name: '{{ ge.name }}',
+                data: [{{ ge.data }}]
+            }, true);
+//alert(se);
+{% endfor %}
+chart_{{ cri.criteria_id }}_{{ ga.assigId }}.redraw();
+});
+</script>
+                      {% endfor %}
+                    {% endfor %}
+                    {% else %}
+                        <p>Graphs Stats are only available if assigment is one. (due to limited resources in free trial of heroku)</p>
+                    {% endif %}
+                  </div>
+
+                </div>
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>
+    <!--end forloop-->
+  </div>
+{% endblock %}
+{% block extrajavascripts %}
+
+{% endblock %}
